@@ -1,0 +1,1 @@
+# stringmatch-automaton
