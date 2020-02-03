@@ -69,7 +69,7 @@ string DFA::next_valid_string( string input )
   for( int64_t x = 0 ; x < inputsize ; ++x, ++i )
   {
     if( i > -1 )
-      stack1.push_back( input.substr(0,i) ;
+      stack1.push_back( input.substr(0,i) ) ;
     else
       stack1.push_back( none ) ;
 
