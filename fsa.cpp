@@ -91,5 +91,5 @@ string DFA::next_valid_string( string input )
     stack2.push_back( state ) ;
     stack3.push_back( none ) ;
   }
-
+// incomplete
 }
