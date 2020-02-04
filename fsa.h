@@ -1,11 +1,10 @@
 #include <stdint.h>
+#include <set>
 #include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
 #include <vector>
 #include <string>
-
-using namespace std ;
 
 typedef struct Node
 {
@@ -26,20 +25,20 @@ typedef std::unordered_map<std::string, Node>::iterator internalmapiterator ;
 class DFA
 {
 private:
-  statemap transitions ;
-  std::unordered_map<Node, Node> defaults ;
-  std::unordered_set<Node> final_states ;
-  Node start_state ;
+  	statemap transitions ;
+  	std::unordered_map<Node, Node> defaults ;
+  	std::unordered_set<Node> final_states ;
+  	Node start_state ;
 
 public:
-  DFA() ;
-  DFA( Node initstate ) ;
-  ~DFA() ;
-  void add_transition( Node src, uint64_t input, Node dest ) ;
-  void set_default_transition( Node src, Node dest ) ;
+  	DFA() ;
+  	DFA( Node initstate ) ;
+  	~DFA() ;
+  	void add_transition( Node src, uint64_t input, Node dest ) ;
+  	void set_default_transition( Node src, Node dest ) ;
   
-  template<template <typename...> class Hashmap, typename T, typename U>
-  vector<T> getkeys( const Hashmap<T,U> &hashmap ) ;
+  	template<template <typename...> class Hashmap, typename T, typename U>
+  	vector<T> getkeys( const Hashmap<T,U> &hashmap ) ;
 } ;
 
 
