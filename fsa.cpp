@@ -12,6 +12,11 @@ DFA::DFA( state initstate )
 	defaults.resize( 200000 ) ;
 }
 
+DFA::DFA( unordered_set<Node> initstate )
+{
+	
+}
+
 template<template <typename...> class Hashmap, typename T, typename U>
 vector<T> DFA::getkeys( const Hashmap<T,U> &hashmap )
 {
@@ -22,21 +27,37 @@ vector<T> DFA::getkeys( const Hashmap<T,U> &hashmap )
 	return keys ;
 }
 
-void DFA::add_transition( Node src, string input, Node dest )
+void DFA::add_transition( unordered_set<Node> src, string input, unordered_set<Node> dest )
 {
   	internalmap &internal = transitions[ src ] ;
   	internal[ input ] = dest ;
 }
 
-void DFA::set_default_transition( Node src, Node dest )
+// void DFA::add_transition( Node src, string input, Node dest )
+// {
+//   	internalmap &internal = transitions[ src ] ;
+//   	internal[ input ] = dest ;
+// }
+
+void DFA::set_default_transition( unordered_set<Node> src, unordered_set<Node> dest )
 {
-  	defaults[ src ] = dest ;
+	defaults[ src ] = dest ;
 }
 
-void DFA::add_final_state( Node state )
+// void DFA::set_default_transition( Node src, Node dest )
+// {
+//   	defaults[ src ] = dest ;
+// }
+
+void DFA::add_final_state( unordered_set<Node> state )
 {
-  	final_states.insert( curr ) ;
+  	final_states.insert( state ) ;
 }
+
+// void DFA::add_final_state( Node state )
+// {
+//   	final_states.insert( curr ) ;
+// }
 
 bool DFA::is_final_state( Node state )
 {
@@ -246,7 +267,7 @@ std::unordered_set<Node> NFA::expand( unordered_set<Node> currstate )
 	return currstate ;
 }
 
-void NFA::add_transitions( Node src, uint64_t input, Node dest )
+void NFA::add_transitions( Node src, string input, Node dest )
 {
 	internalstate &internal = transitions[ src ] ;
 	unordered_set<Node> &currset =  internal[ input ] ;
@@ -274,7 +295,7 @@ unordered_set<Node> NFA::is_final_state( unordered_set<Node> currstates )
 	return intersection ;
 }
 
-const unordered_set<Node> NFA::next_state( unordered_set<Node> currstates, float input )
+const unordered_set<Node> NFA::next_state( unordered_set<Node> currstates, string input )
 {
 	unordered_set<Node> dest_states ;
 	unordered_set<Node>::iterator it ;
@@ -298,13 +319,13 @@ const unordered_set<Node> NFA::next_state( unordered_set<Node> currstates, float
 	return expand( dest_states ) ;
 }
 
-unordered_set<float> NFA::get_inputs( unordered_set<Node> states )
+unordered_set<string> NFA::get_inputs( unordered_set<Node> states )
 {
-	unordered_set<float> inputs ;
-	unordered_set<Node>::iterator state = states.begin() ;
+	unordered_set<string> inputs ;
+	unordered_set<Node>::iterator state ;
 	statemapiterator it ; 
 
-	for( ; state != states.end() ; ++state )
+	for( state = states.begin() ; state != states.end() ; ++state )
 	{
 		it = transitions.find( state ) ;
 		if( it != transitions.end() )
@@ -314,12 +335,23 @@ unordered_set<float> NFA::get_inputs( unordered_set<Node> states )
 	return inputs ;
 }
 
+bool NFA::isPresent( vector<unordered_set<Node> > seen, unordered_set<Node> set )
+{
+	uint64_t vecsize = seen.size() ;
+	for( uint64_t i = 0 ; i < vecsize ; ++i )
+	{
+		if( seen[ i ] == set )
+			return true ;
+	}
+	return false ;
+}
+
 DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of class maybe needed
 {
-	unordered_set<Node> n = get_start_state() ;
+	unordered_set<Node> n ( get_start_state() ) ;
 	vector<unordered_set<Node> > frontier ;
-	unordered_set<unordered_set<Node> > seen ;
-	
+	vector<unordered_set<Node> > seen ;
+
 	DFA dfa( n ) ;
 	frontier.push_back( n ) ;
 
@@ -328,27 +360,27 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 		unordered_set<Node> current = frontier.back() ;
 		frontier.pop_back() ;
 
-		unordered_set<float> inputs = get_inputs( current ) ;
-
+		unordered_set<string> inputs( get_inputs( current ) ) ;
 		for( uint64_t i = 0 ; i < inputs.size() ; ++i )
 		{
-			if( inputs[ i ] == EPSILON )
+			string input = inputs[ i ] ;
+			if( input.compare( EPSILON ) == 0 )
 				continue ;
-			
-			unordered_set<Node> new_state = next_state( current, inputs[ i ] ) ;
-			unordered_set<unordered_set<Node> >::iterator uit = seen.find( new_state ) ;
-			if( uit == seen.end() )
+
+			unordered_set<Node> new_state( next_state( current, input ) ) ;
+			if( !isPresent( seen, new_state ) )
 			{
 				frontier.push_back( new_state ) ;
-				seen.insert( new_state ) ;
+				seen.push_back( new_state ) ;
 
 				if( is_final_state( new_state ) )
 					dfa.add_final_state( new_state ) ;
 			}
-			if( inputs[ i ] == ANY )
+
+			if( input.compare( ANY ) )
 				dfa.set_default_transition( current, new_state ) ;
 			else
-				dfa.add_transitions( current, inputs[ i ], new_state )
+				dfa.add_transitions( current, input, new_state ) ;
 		}
 	}
 	return dfa ;
