@@ -15,26 +15,26 @@ typedef struct Node
 // DFA:
 
 // Data structure
-typedef std::unordered_map<std::string, Node> internalmap ;
-typedef std::unordered_map<Node, internalmap> statemap ;
+typedef std::unordered_map<std::string, std::unordered_set<Node> > internalmap ;
+typedef std::unordered_map<std::unordered_set<Node>, internalmap> statemap ;
 
 // Iterators
-typedef std::unordered_map<Node, internalmap>::iterator statemapiterator ;
-typedef std::unordered_map<std::string, Node>::iterator internalmapiterator ;
+typedef std::unordered_map<std::unordered_set<Node>, internalmap>::iterator statemapiterator ;
+typedef std::unordered_map<std::string, std::unordered_set<Node> >::iterator internalmapiterator ;
 
 class DFA
 {
 private:
   	statemap transitions ;
-  	std::unordered_map<Node, Node> defaults ;
-  	std::unordered_set<Node> final_states ;
+  	std::unordered_map<unordered_set<Node>, unordered_set<Node> > defaults ;
+  	std::unordered_set<unordered_set<Node> > final_states ;
   	Node start_state ;
 
 public:
   	DFA() ;
   	DFA( Node initstate ) ;
   	~DFA() ;
-  	void add_transition( Node src, uint64_t input, Node dest ) ;
+  	void add_transition( Node src, std::string input, Node dest ) ;
   	void set_default_transition( Node src, Node dest ) ;
   
   	template<template <typename...> class Hashmap, typename T, typename U>
@@ -45,7 +45,7 @@ public:
 // NFA :
 
 // Data Structures
-typedef std::unordered_map<float, std::unordered_set<Node> > internalstate ;
+typedef std::unordered_map<std::string, std::unordered_set<Node> > internalstate ;
 typedef std::unordered_map<Node, internalstate> statemap ;
 
 // Iterators
@@ -58,8 +58,8 @@ private:
 	Node start_state ;
 
 public:
-	static constexpr float EPSILON = 1.e-12 ;
-	static constexpr float ANY = 1.e-10 ;
+	static const char EPSILON = "&" ;
+	static const char ANY = "#" ;
 	statemap transitions ;
 	std::unordered_set<Node> final_states ;					// Not sure if set or unordered_set
 
@@ -70,6 +70,6 @@ public:
 
 	std::unordered_set<Node> set_difference( const std::unordered_set<Node> &a, const std::unordered_set<Node> &b ) ;
 	const unordered_set<Node> get_start_state() ;
-	void add_transitions( Node src, float input, Node dest ) ;
-	std::unordered_set<Node> expand( unordered_set<Node> states ) ;
+	void add_transitions( Node src, std::string input, Node dest ) ;
+	std::unordered_set<Node> expand( unordered_set<Node> currstate ) ;
 } ;
