@@ -443,14 +443,16 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 
 	// function pointer: A single argument function that returns the first word in the database that is greater than or equal to the input argument
 	// Returns: Every matched word from edit distance 3 from the database
-	vector<string> find_all_matches( string word, uint32_t k, std::string( *nextinput ) ( const std::string& inputstring ) )
+	vector<string> find_all_matches( string word, uint32_t k )
 	{
+		cout<<"DEBUG:ENTER:find_all_matches"<<endl ;
 		vector<string> matches ;
+		Matcher m ;
 		DFA lev = levenshtein_automata( word, k ).to_dfa() ;
 		string match = lev.next_valid_string(string(1,'\0')) ; 			// Can start with ^ for regex
 		while( match.size() > 0 )
 		{
-			string next = nextinput( match ) ;
+			string next = m.nextinput( match ) ;
 			if( next.empty() )
 				break ;
 			if( match == next )
@@ -460,6 +462,49 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 			}
 			match = lev.next_valid_string( next ) ;
 		}
+		cout<<"DEBUG:EXIT:find_all_matches"<<endl ;
 		return matches ;
 	}
 // }
+
+std::string defaultcleaningtool( const std::string &s )
+{
+    return s ;
+}
+
+Matcher::Matcher()
+{
+	probes = 0 ;
+	FileLoader *file ;
+	filename = "words.txt" ;
+	file = new FileLoader( "words.txt", defaultcleaningtool, str ) ;
+	if( str.size() == 0 )
+	{
+		cout<<"ERROR in loading file"<<endl ;
+		exit(0) ;
+	}
+	std::sort( str.begin(), str.end() ) ;
+}
+
+std::string Matcher::nextinput( const std::string &s )
+{
+	std::string empty ;
+	++probes ;
+	std::vector<char*>::iterator it = std::lower_bound( str.begin(), str.end(), s ) ;	// Should be already sorted
+	uint32_t pos = it - str.begin() ;
+
+	if( pos < str.size() )
+		return str[ pos ] ;
+	else
+		return empty ;
+}
+
+int main()
+{
+	vector<string> results ;
+	results = find_all_matches( "food", 1 ) ;
+
+	//cout<<std::boolalpha<<assert( results.size() == 21 )<<endl ;
+
+	return 0 ;
+}

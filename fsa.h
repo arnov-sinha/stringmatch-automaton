@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <vector>
 #include <string>
+#include "fastFileLoader.h"
 
 // Node for the Graph and supported functions
 
@@ -104,4 +105,19 @@ public:
 
 	// Support functions
 	std::unordered_set<Node> set_difference( const std::unordered_set<Node> &a, const std::unordered_set<Node> &b ) ;
+} ;
+
+class Matcher
+{
+private:
+	std::vector<char*> str ;
+	uint32_t probes ;
+	std::string filename ;
+
+public:
+	Matcher() ;
+	~Matcher(){} ;
+
+	inline uint32_t getprobes(){ return probes ; }
+	std::string nextinput( const std::string &s ) ;
 } ;
