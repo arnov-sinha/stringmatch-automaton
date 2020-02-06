@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <vector>
 #include <stdint.h>
 #include <string.h>

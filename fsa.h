@@ -31,16 +31,16 @@ inline uint32_t dest( uint64_t node )
 
 // Data structure
 typedef std::unordered_map<std::string, std::unordered_set<Node> > internalmap ;
-typedef std::unordered_map<size_t, internalmap> statemap ;
+typedef std::unordered_map<size_t, internalmap> smap ;
 
 // Iterators
-typedef std::unordered_map<size_t, internalmap>::iterator statemapiterator ;
+typedef std::unordered_map<size_t, internalmap>::iterator smapiterator ;
 typedef std::unordered_map<std::string, std::unordered_set<Node> >::iterator internalmapiterator ;
 
 class DFA
 {
 private:
-  	statemap transitions ;
+  	smap transitions ;
   	std::unordered_map<size_t , std::unordered_set<Node> > defaults ;
   	std::unordered_set<size_t> final_states ;
   	std::unordered_set<Node> start_state ;
@@ -60,7 +60,7 @@ public:
   	// Support functions
   	template<typename T>
 	size_t hashonset( std::unordered_set<T> uset ) ;
-  	
+
   	template<template <typename...> class Hashmap, typename T, typename U>
   	std::vector<T> getkeys( const Hashmap<T,U> &hashmap ) ;
 } ;

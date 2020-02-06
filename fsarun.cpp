@@ -22,7 +22,7 @@ private:
 public:
 	Matcher( std::vector<char*> s ) : str(s), probes(0){}
 	~Matcher(){}
-	
+
 	uint32_t getprobes(){ return probes ; }
 
 	std::string nextinput( const std::string &s )
@@ -31,7 +31,7 @@ public:
 		++probes ;
 		std::vector<char*>::iterator it = std::lower_bound( str.begin(), str.end(), s ) ;	// Should be already sorted
 		uint32_t pos = it - str.begin() ;
-	
+
 		if( pos < str.size() )
 			return str[ pos ] ;
 		else
@@ -49,9 +49,9 @@ int main()
 	std::sort( corpus.begin(), corpus.end() ) ;
 	Matcher m( corpus ) ;
 
-	results = find_all_matches( "food", 1, m ) ;
+	results = find_all_matches( "food", 1, &m.nextinput ) ;
 
-	cout<<std::boolalpha<<assert( results.size() == 21 )<<endl ;
+	//cout<<std::boolalpha<<assert( results.size() == 21 )<<endl ;
 
 	return 0 ;
 }

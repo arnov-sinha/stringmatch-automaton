@@ -26,7 +26,7 @@ DFA::DFA( unordered_set<Node> initstate )
 {
 	start_state = initstate ;
 	transitions.reserve( 200000 ) ;
-	defaults.reserve( 200000 ) ;	
+	defaults.reserve( 200000 ) ;
 }
 
 template<template <typename...> class Hashmap, typename T, typename U>
@@ -69,8 +69,8 @@ unordered_set<Node> DFA::next_state( unordered_set<Node> src, string input )
   	bool flag = false ;
 
   	size_t key = hashonset( src ) ;
- 
-  	statemapiterator it = transitions.find( key ) ;					// Find the src in the transition table
+
+  	smapiterator it = transitions.find( key ) ;					// Find the src in the transition table
   	if( it != transitions.end() )
   	{
     	internalmap state_transition = it->second ;
@@ -83,14 +83,13 @@ unordered_set<Node> DFA::next_state( unordered_set<Node> src, string input )
   	else
     	flag = true ;
 
-  	if( flag ) ;													// else, look in defaults, otherwise return empty
+  	if( flag ) 													// else, look in defaults, otherwise return empty
   	{
     	unordered_map<size_t , unordered_set<Node> >::iterator dit = defaults.find( key ) ;
     	if( dit != defaults.end() )
       		return dit->second ;
-    	else
-    	  	return empty ;
-  	}
+    }
+		return empty ;
 }
 
 string DFA::find_next_edge( unordered_set<Node> s, string x )		// Gives the position of the lexicographically lower edge
@@ -109,7 +108,7 @@ string DFA::find_next_edge( unordered_set<Node> s, string x )		// Gives the posi
 		x = c ;
 	}
 
-	statemapiterator it = transitions.find( key ) ;
+	smapiterator it = transitions.find( key ) ;
 	if( it != transitions.end() )
 	{
 		state_transition = it->second ;
@@ -121,7 +120,7 @@ string DFA::find_next_edge( unordered_set<Node> s, string x )		// Gives the posi
 	}
 	else
 		checkdefaults = true ;
-	
+
 	if( checkdefaults )
 	{
 		unordered_map<size_t, unordered_set<Node> >::iterator dit = defaults.find( key ) ;
@@ -133,7 +132,7 @@ string DFA::find_next_edge( unordered_set<Node> s, string x )		// Gives the posi
 	std::sort( labels.begin(), labels.end() ) ;
 	vector<string>::iterator vit = std::lower_bound( labels.begin(), labels.end(), x ) ;
 	uint64_t pos = vit - labels.begin() ;
-	
+
 	if( pos < labels.size() )
 		return labels[ pos ] ;
 
@@ -147,7 +146,7 @@ string DFA::next_valid_string( string input )
   	int64_t inputsize = input.size() ;
   	int64_t i = -1 ;
   	unordered_set<Node> state = start_state ;
-  	
+
   	// The below vectors can be replaced by vector<std::variant<type1,type2,type3>
   	// for c++17 onwards.
   	vector<string> stack1 ;
@@ -229,7 +228,7 @@ NFA::NFA( Node initstate )
 }
 
 unordered_set<Node> NFA::set_difference( const unordered_set<Node> &a, const unordered_set<Node> &b )
-{ 
+{
 	vector<Node> vec ;
 	// set difference -> A - B
 	std::copy_if( a.begin(), a.end() , std::back_inserter( vec ), [&b] ( Node i ) { return b.find( i ) == b.end() ; } ) ;
@@ -289,7 +288,7 @@ void NFA::add_final_state( Node state )
 bool NFA::is_final_state( unordered_set<Node> currstates )
 {
 	// unordered_set intersection
-	unordered_set<Node> intersection ; 
+	unordered_set<Node> intersection ;
 	unordered_set<Node>::const_iterator it ;
 
 	for( it = final_states.begin() ; it != final_states.end() ; ++it )
@@ -303,7 +302,7 @@ const unordered_set<Node> NFA::next_state( unordered_set<Node> currstates, strin
 {
 	unordered_set<Node> dest_states ;
 	unordered_set<Node>::iterator it ;
-	
+
 	for( it = currstates.begin() ; it != currstates.end() ; ++it )
 	{
 		internalstate internal ;
@@ -327,7 +326,7 @@ unordered_set<string> NFA::get_inputs( unordered_set<Node> states )
 {
 	unordered_set<string> inputs ;
 	unordered_set<Node>::iterator state ;
-	statemapiterator it ; 
+	statemapiterator it ;
 
 	for( state = states.begin() ; state != states.end() ; ++state )
 	{
@@ -365,7 +364,7 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 		frontier.pop_back() ;
 
 		unordered_set<string> inputs( get_inputs( current ) ) ;
-		unordered_set<string>::iterator it ; 
+		unordered_set<string>::iterator it ;
 		for( it = inputs.begin() ; it != inputs.end() ; ++it )
 		{
 			string input = *it ;
@@ -400,7 +399,7 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 	{
 		NFA nfa ; 		// Default constructor with initial state ( 0, 0 )
 		uint32_t termsize = term.size() ;
-		
+
 		for( uint32_t i = 0 ; i < termsize ; ++i )
 		{
 			for( uint32_t e = 0 ; e <= k ; ++e )
@@ -418,7 +417,7 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 					nfa.add_transition( src, string(1,NFA::ANY), del ) ;
 
 					// Insertion
-					Node ins = ( (i + 1), (e + 1) ) ;
+					Node ins = node( (i + 1), (e + 1) ) ;
 					nfa.add_transition( src, string(1,NFA::EPSILON), ins ) ;
 
 					// Substitution
@@ -433,7 +432,7 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 			{
 				Node src = node( termsize, e ) ;
 				Node dest = node( termsize , (e + 1) ) ;
-				nfa.add_transition( src, string(1,NFA::ANY), dest ) ; 
+				nfa.add_transition( src, string(1,NFA::ANY), dest ) ;
 			}
 			Node final = node( termsize, e ) ;
 			nfa.add_final_state( final ) ;
@@ -444,20 +443,20 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 
 	// function pointer: A single argument function that returns the first word in the database that is greater than or equal to the input argument
 	// Returns: Every matched word from edit distance 3 from the database
-	vector<string> find_all_matches( string word, uint32_t k, auto &m/*std::string( *nextinput ) ( const std::string& inputstring )*/ )
+	vector<string> find_all_matches( string word, uint32_t k, std::string( *nextinput ) ( const std::string& inputstring ) )
 	{
 		vector<string> matches ;
 		DFA lev = levenshtein_automata( word, k ).to_dfa() ;
-		string match = lev.next_valid_string('\0') ; 			// Can start with ^ for regex
+		string match = lev.next_valid_string(string(1,'\0')) ; 			// Can start with ^ for regex
 		while( match.size() > 0 )
 		{
-			string next = m.nextinput( match ) ;
+			string next = nextinput( match ) ;
 			if( next.empty() )
 				break ;
 			if( match == next )
 			{
 				matches.push_back( match ) ;
-				next += '\0' ; 
+				next += '\0' ;
 			}
 			match = lev.next_valid_string( next ) ;
 		}
