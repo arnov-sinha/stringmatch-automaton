@@ -8,12 +8,11 @@ FileLoader::FileLoader( const char* file, string ( *cleaner ) ( const string& di
   loadcorpus( filename ) ;
   }
 
-FileLoader::FileLoader( const char* file, string ( *cleaner ) ( const string& dirtystring ), vector<char*> &corpus ) : filename( file ),
-                                                                                                                       cleaningtool( *cleaner )
+void FileLoader::copycorpus( vector<char*> &corpus )
   {
-  loadcorpus( filename ) ;
   corpus.swap( corpusdata ) ;
   }
+
 
 std::string FileLoader::makemytime( void )
   {
@@ -65,7 +64,7 @@ void FileLoader::loadcorpus( const char* filename )
   corpusdata.reserve( 62000000 ) ;
 
   FILE *f = openblockreadfile( filename ) ;
-
+  
   if( f != NULL )
     {
     const uint64_t preferredbufsize = 32UL * 1024ULL * 1024ULL ;
@@ -77,11 +76,13 @@ void FileLoader::loadcorpus( const char* filename )
     string preread ;
     uint64_t nlinesinfile = 0 ;
     uint64_t nbytesinfile = 0 ;
-
+    
     bufferread = readblockreadfile( f, preferredbufsize, preread, buffer[ switchbuffer ] ) ;
+
 #ifdef _OPENMP
     omp_set_nested( 1 ) ; // Need this for nested parallelism
 #endif
+
 #pragma omp parallel num_threads( 2 )
     {
     while( bufferread )
@@ -100,11 +101,13 @@ void FileLoader::loadcorpus( const char* filename )
         }
       switchbuffer = !switchbuffer ;
       } // end of single, relying on implied barrier
-      } // end of while
+      } // end of while 
     } // end of parallel
+
 #ifdef _OPENMP
     omp_set_nested( 0 ) ; // switching off nested parallelism
 #endif
+
     processblock( nbytesinfile, nlinesinfile, buffer[ switchbuffer ] ) ;
 
     closeblockreadfile( f ) ;
@@ -220,7 +223,7 @@ void FileLoader::processblock( uint64_t &nread, uint64_t &nlines, const string &
       {
 #pragma omp single
       computestarts( buffer, bufstarts ) ;
-
+      
       prepcorpus( buffer, bufstarts ) ;
       } // End of Parallel, implied barrier
     }
@@ -236,6 +239,7 @@ void FileLoader::computestarts( const string &buf, vector<uint64_t> &bufstarts )
 #else
   uint64_t nthread = 1 ;
 #endif
+
   uint64_t len     = buf.size() ;
 
   uint64_t nper = buf.size() / nthread ;
@@ -261,11 +265,13 @@ void FileLoader::prepcorpus( const string &buf, vector<uint64_t> &bufstarts )  /
   vector<char*> mycorpusentries ;
   mycorpusentries.reserve( 2000000 ) ;
   string entrystr ;
+
 #ifdef _OPENMP
   uint64_t myid = omp_get_thread_num() ;
 #else
   uint64_t myid = 0 ;
 #endif
+  
   uint64_t stop = bufstarts[ myid + 1 ] ;
 
   entrystr.reserve( 512 ) ;
