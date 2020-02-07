@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <set>
+#include <sstream>
 #include <unordered_set>
 #include <unordered_map>
 #include <functional>
@@ -27,6 +27,41 @@ inline uint32_t dest( uint64_t node )
 	return(uint32_t)( node & 0xffff ) ;
 }
 
+// Timer functions
+static inline double compute_elapsed( const struct timespec &starttime)
+	{
+		struct timespec endtime;
+		clock_gettime( CLOCK_REALTIME, &endtime );
+		double elapsed = (( endtime.tv_sec +
+		                    endtime.tv_nsec / ( double ) 1000000000 ) -
+		                  ( starttime.tv_sec +
+		                    starttime.tv_nsec / ( double ) 1000000000 )) ;
+		return elapsed;
+	}
+
+static inline std::string makemytime( void )
+  {
+  struct timeval tv ;
+  struct tm brokendowntime ;
+  std::stringstream ss ;
+  long partialsec ;
+
+  gettimeofday( &tv, NULL ) ;
+  gmtime_r( &tv.tv_sec, &brokendowntime ) ;
+  partialsec = 1000 * tv.tv_usec * 0.000001 ;
+
+  ss << std::setfill( '0' ) << std::setw( 4 ) << brokendowntime.tm_year + 1900 << "-" <<
+        std::setfill( '0' ) << std::setw( 2 ) << brokendowntime.tm_mon + 1     << "-" <<
+        std::setfill( '0' ) << std::setw( 2 ) << brokendowntime.tm_mday        << "T" <<
+        std::setfill( '0' ) << std::setw( 2 ) << brokendowntime.tm_hour        << ":" <<
+        std::setfill( '0' ) << std::setw( 2 ) << brokendowntime.tm_min         << ":" <<
+        std::setfill( '0' ) << std::setw( 2 ) << brokendowntime.tm_sec         << "." <<
+        std::setfill( '0' ) << std::setw( 3 ) << partialsec                    << "Z" ;
+
+  return( ss.str() ) ;
+  }
+
+static inline std::string makemytimebracketed(){ return( std::string("[") + makemytime() + "] " ) ;	}
 
 // DFA:
 
