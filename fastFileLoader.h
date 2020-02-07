@@ -1,8 +1,6 @@
 #include <iostream>
 #include <string>
-#ifdef _OPENMP
 #include <omp.h>
-#endif
 #include <vector>
 #include <stdint.h>
 #include <string.h>
@@ -19,7 +17,7 @@ public:
 
 public:
 	FileLoader( const char* file, std::string ( *cleaner ) ( const std::string& dirtystring ) ) ;
-	FileLoader( const char* file, std::string ( *cleaner ) ( const std::string& dirtystring ), std::vector<char*> &corpus ) ;
+	void copycorpus( std::vector<char*> &corpus ) ;
 	std::string ( *cleaningtool ) ( const std::string &dirtystring ) ;
 	static std::string makemytime( void );
 	static inline double compute_elapsed( const struct timespec &starttime)
