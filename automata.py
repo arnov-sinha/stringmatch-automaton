@@ -1,4 +1,5 @@
 import bisect
+import pprint
 
 class NFA(object):
   EPSILON = object()
@@ -71,6 +72,8 @@ class NFA(object):
         if input == NFA.EPSILON: continue
         new_state = self.next_state(current, input)
         # print "\t\tnext_state-> ",new_state
+        # print "\t\tseen-> "
+        # pprint.pprint(seen)
         if new_state not in seen:
           # print "\t\tNot in seen -> true"
           # print "Appending FRONTIER with new_state above "
@@ -131,7 +134,7 @@ class DFA(object):
       print "next_valid_string::Appended to Stack2-> ",state
       print "next_valid_string::Appended to Stack3-> ",x
       state = self.next_state(state, x)
-      print "next_valid_string::next_state-> ",state
+      print "next_valid_string::next_state-> ",state, "\t Size =>",len(state)
       if not state: break
     else:
       stack.append((input[:i+1], state, None))
@@ -177,12 +180,24 @@ class DFA(object):
     return None
 
   def find_next_edge(self, s, x):
+
+    if x:
+      print "find_next_edge::Before x, size(",len(x),") => ",x
+    else:
+      print "find_next_edge::Before x, (NONE) => ",x
     if x is None:
+      print "find_next_edge:: x => '0'"
       x = u'\0'
     else:
-      print "Before x => ",x
+      print "find_next_edge:: x => +1 "
       x = unichr(ord(x) + 1)
-      print "After x => ",x
+    print "find_next_edge::After x => ",x
+
+    print "\n\t-----------------DEFAULTS-----------------"
+    print "\tsize->",len(self.defaults)
+    print "\t",self.defaults
+    print "\n\t-----------------DEFAULTS-----------------\n"
+
     state_transitions = self.transitions.get(s, {})
     if x in state_transitions or s in self.defaults:
       print "find_next_edge::Return x -> ",x
@@ -228,13 +243,14 @@ def find_all_matches(word, k, lookup_func):
   """
   lev = levenshtein_automata(word, k).to_dfa()
   match = lev.next_valid_string(u'\0')
-  print("DEBUG:find_all_matches::Found next valid string -> ",match)
-  while match:
-    next = lookup_func(match)
-    if not next:
-      return
-    if match == next:
-      yield match
-      next = next + u'\0'
-    match = lev.next_valid_string(next)
-    print("DEBUG:find_all_matches::Found next valid string -> ",match)
+  # print("DEBUG:find_all_matches::Found next valid string -> ",match)
+  # while match:
+  next = lookup_func(match)
+  print "find_all_matches::NEXT-> ",next
+  if not next:
+    return
+  if match == next:
+    yield match
+    next = next + u'\0'
+  match = lev.next_valid_string(next)
+  print "\n\nDEBUG:find_all_matches::Found next valid string -> ",match

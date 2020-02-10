@@ -9,14 +9,17 @@ class Matcher(object):
     self.probes = 0
   def __call__(self, w):
     self.probes += 1
+    print self.l
+    print w
     pos = bisect.bisect_left(self.l, w)
+    print "POS-> ",pos
     if pos < len(self.l):
       return self.l[pos]
     else:
       return None
 
 
-words = [x.strip().lower().decode('utf-8') for x in open('dict5.txt')]
+words = [x.strip().lower().decode('utf-8') for x in open('d2.txt')]
 words.sort()
 words10 = [x for x in words if random.random() <= 0.1]
 words100 = [x for x in words if random.random() <= 0.01]

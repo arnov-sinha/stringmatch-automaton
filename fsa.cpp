@@ -3,6 +3,8 @@
 
 using namespace std ;
 
+std::unordered_map<size_t , std::unordered_set<Node> > def ;
+
 DFA::DFA( unordered_set<Node> initstate )
 {
 	start_state = initstate ;
@@ -25,14 +27,15 @@ vector<string> DFA::getkeys( const unordered_map<string, unordered_set<Node> > &
 void DFA::add_transition( unordered_set<Node> src, string input, unordered_set<Node> dest )
 {
 	size_t key = hashonset(src) ;
-  	internalmap &internal = transitions[ key ] ;
-  	internal[ input ] = dest ;
+  internalmap &internal = transitions[ key ] ;
+  internal[ input ] = dest ;
 }
 
 void DFA::set_default_transition( unordered_set<Node> src, unordered_set<Node> dest )
 {
 	size_t key = hashonset(src) ;
 	defaults[ key ] = dest ;
+	def[ key ] = src ;
 }
 
 void DFA::add_final_state( unordered_set<Node> state )
@@ -48,7 +51,7 @@ bool DFA::is_final_state( unordered_set<Node> state )
 
 unordered_set<Node> DFA::next_state( unordered_set<Node> src, string input )
 {
-	cout<<"\n\t\tnext_state->Input-> "<<input<<endl ;
+	// cout<<"\n\t\tnext_state->Input-> "<<input<<endl ;
   	unordered_set<Node> empty ;
   	bool flag = false ;
 
@@ -62,7 +65,7 @@ unordered_set<Node> DFA::next_state( unordered_set<Node> src, string input )
     	internalmapiterator sit = state_transition.find( input ) ;
     	if( sit != state_transition.end() )
     	{
-    		cout<<"\t\tnext_state->Return1-> " ;
+    		// cout<<"\t\tnext_state->Return1-> " ;
     		for( auto &e : sit->second )
 				cout<<"("<<(e>>32)<<","<<(e&0xffff)<<") \t" ;
 			cout<<endl;
@@ -79,14 +82,14 @@ unordered_set<Node> DFA::next_state( unordered_set<Node> src, string input )
     	unordered_map<size_t , unordered_set<Node> >::iterator dit = defaults.find( key ) ;
     	if( dit != defaults.end() )
     	{
-    		cout<<"\t\tnext_state->Return2-> " ;
-    		for( auto &e : dit->second )
-				cout<<"("<<(e>>32)<<","<<(e&0xffff)<<") \t" ;
-			cout<<endl;
-      		return dit->second ;
+    		// cout<<"\t\tnext_state->Return2-> " ;
+    // 		for( auto &e : dit->second )
+				// 	cout<<"("<<(e>>32)<<","<<(e&0xffff)<<") \t" ;
+				// cout<<endl;
+      	return dit->second ;
     	}
     }
-    cout<<"\t\tnext_state->Return-> None"<<endl ;
+    // cout<<"\t\tnext_state->Return-> None"<<endl ;
 		return empty ;
 }
 
@@ -97,18 +100,44 @@ string DFA::find_next_edge( const unordered_set<Node> &s, string x )		// Gives t
 	internalmap state_transition ;
 	size_t key = hashonset( s ) ;
 
-	cout<<"find_next_edge::x.empty() ->"<<std::boolalpha<<x.empty()<<endl ;
+	cout<<"find_next_edge::Before x.size("<<x.size()<<") => "<<x<<endl ;
 
 	if( x.empty() )				// if no next edge add, a edge with '\0', to denote end
+	{
+		cout<<"find_next_edge::x => '0'"<<endl ;
 		x = '\0' ;
+	}
 	else
 	{
-		cout<<"find_next_edge::Before x => "<<x<<endl ;
+		cout<<"find_next_edge::x => + 1"<<endl ;
 		char c = x[ 0 ] ;		// change x to the next character for the next edge
 		++c ;
 		x = c ;
-		cout<<"find_next_edge::After x => "<<x<<endl ;
 	}
+
+	cout<<"find_next_edge::After x => "<<x<<endl ;
+
+	cout<<"\n\t-----------------DEFAULTS-----------------"<<endl ;
+
+	for( auto &d : def )
+	{
+		cout<<"\tKey:"<<endl ;
+		for( auto &e : d.second )
+				cout<<"\t("<<src(e)<<","<<dest(e)<<")" ;
+
+		size_t key = d.first ;
+
+		unordered_map<size_t, unordered_set<Node> >::iterator xit = defaults.find( key ) ;
+		if( xit != defaults.end() )
+		{
+			cout<<"\n\tValue:"<<endl ;
+			for( auto &e : xit->second )
+				cout<<"\t("<<src(e)<<","<<dest(e)<<")" ;				
+		}
+		cout<<endl<<endl ;
+	}
+
+	cout<<"\n\t-----------------DEFAULTS-----------------"<<endl ;
 
 	smapiterator it = transitions.find( key ) ;
 	if( it != transitions.end() )
@@ -145,12 +174,12 @@ string DFA::find_next_edge( const unordered_set<Node> &s, string x )		// Gives t
 
 	if( pos < labels.size() )
 	{
-		cout<<"find_next_edge::Returning labels[pos]=> "<<labels[pos]<<endl ;
+		// cout<<"find_next_edge::Returning labels[pos]=> "<<labels[pos]<<endl ;
 		return labels[ pos ] ;
 	}
 
 
-	cout<<"FIND_NEXT_EDGE::Returning empty"<<endl ;
+	// cout<<"FIND_NEXT_EDGE::Returning empty"<<endl ;
 	return empty ;
 }
 
@@ -196,10 +225,10 @@ string DFA::next_valid_string( string input )
 
     	state = next_state( state, string(1,input[ x ]) ) ;
 
-    	cout<<"next_valid_string::next_state-> " ;
-		for( auto &e : state )
-			cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-		cout<<endl;    	
+    	cout<<"next_valid_string::next_state-> size =>"<<state.size()<<"  " ;
+			for( auto &e : state )
+				cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
+			cout<<endl;    	
 
     	if( state.size() != 0 )			// No where to go
     	{
@@ -224,25 +253,25 @@ string DFA::next_valid_string( string input )
   	}
 
   	cout<<"\nnext_valid_string::Stack after Step 1: "<<endl ;
-  	
+	  	
   	cout<<"Stack1-> " ;
-	for( auto e : stack1 )
-		cout<<e<<"\t" ;
-	cout<<endl;
+		for( auto e : stack1 )
+			cout<<e<<"\t" ;
+		cout<<endl;
 
-	cout<<"Stack2 ( size "<<stack2.size()<<" ) -> " ;
-	for( auto k : stack2 )
-	{
-		for( auto &e : k )
-			cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-		cout<<" | " ;
-	}
-	cout<<endl;
+		cout<<"Stack2 ( size "<<stack2.size()<<" ) -> " ;
+		for( auto k : stack2 )
+		{
+			for( auto &e : k )
+				cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
+			cout<<" | " ;
+		}
+		cout<<endl;
 
-	cout<<"Stack3-> " ;
-	for( auto e : stack1 )
-		cout<<e<<"\t" ;
-	cout<<endl;
+		cout<<"Stack3-> " ;
+		for( auto e : stack1 )
+			cout<<e<<"\t" ;
+		cout<<endl;
 
   	if( is_final_state( state ) )		// Input word is already valid as a final state is available
   	{
@@ -259,12 +288,12 @@ string DFA::next_valid_string( string input )
   		cout<<endl ;
   		cout<<"Before::Stack2 -> " ;
   		for( auto k : stack2 )
-		{	
-			for( auto &e : k )
-				cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-			cout<<" | " ;
-		}
-		cout<<endl ;
+			{	
+				for( auto &e : k )
+					cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
+				cout<<" | " ;
+			}
+			cout<<endl ;
   		cout<<"Before::Stack3 -> " ;
   		for( auto e : stack3 )
   			cout<<e<<" " ;
@@ -276,7 +305,7 @@ string DFA::next_valid_string( string input )
   		unordered_set<Node> lstate = stack2.back() ;
   		stack2.pop_back() ;
 
-		string x = stack3.back() ;
+			string x = stack3.back() ;
   		stack3.pop_back() ;
 
   		cout<<"\nPopped::Stack1 -> "<<path<<endl ;
@@ -324,12 +353,12 @@ string DFA::next_valid_string( string input )
 
   			cout<<"\tFinal Stack2-> " ;
   			for( auto k : stack2 )
-			{		
-				for( auto &e : k )
-					cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-				cout<<" | " ;
-			}
-			cout<<endl ;
+				{		
+					for( auto &e : k )
+						cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
+					cout<<" | " ;
+				}
+				cout<<endl ;
   			cout<<"\tFinal Stack3-> None"<<endl ;
   		}
   	}
@@ -472,7 +501,6 @@ unordered_set<string> NFA::get_inputs( const unordered_set<Node> &states )
 bool NFA::isPresent( const unordered_set<size_t> &seen, const unordered_set<Node> &set )
 {
 	size_t key = hashonset(set) ;
-	// cout<<" Key: "<<key <<" => " ;
 	unordered_set<size_t>::const_iterator it = seen.find( key ) ;
 	return( it != seen.end() ) ;
 }
@@ -487,7 +515,7 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 	DFA dfa( n ) ;
 	frontier.push_back( n ) ;
 
-	std::vector<unordered_set<Node> >::iterator vit = frontier.begin() ; 
+	// std::vector<unordered_set<Node> >::iterator vit = frontier.begin() ; 
 
 	while( !frontier.empty() )
 	{
@@ -499,13 +527,12 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 		// 	cout<<endl ;
 		// }
 
-		vit = frontier.begin() ;
+		// vit = frontier.begin() ;
+		// unordered_set<Node> current = *vit ;
+		// frontier.erase(vit) ;
 
-		unordered_set<Node> current = *vit ;
-		frontier.erase(vit) ;
-
-		// unordered_set<Node> current = frontier.back() ;
-		// frontier.pop_back() ;
+		unordered_set<Node> current = frontier.back() ;
+		frontier.pop_back() ;
 		// cout<<"POPPED=> " ;
 		// for( auto &e : current )
 		// 	cout<<"("<<src(e)<<","<<dest(e)<<") " ;
@@ -515,7 +542,7 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 		
 		// cout<<"\n-----------------------------" ;
 		// for( auto &e : inputs )
-			// cout<<e<<"  " ;
+		// 	cout<<e<<"  " ;
 		// cout<<"-----------------------------------";
 
 		unordered_set<string>::const_iterator it ;
@@ -576,7 +603,7 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 			else
 			{
 				// cout<<"\t\tAdding transitions from " ;
-				// 
+				
 				// for( auto &e : current )
 				// 	cout<<"("<<src(e)<<","<<dest(e)<<") " ;
 				// cout<<" with \""<<input<<"\" -> " ;
@@ -596,9 +623,10 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 	for( ; t != dfa.transitions.end() ; ++t )
 	{
 		unordered_set<Node> tset = rhash[ t->first ] ;
+		cout<<"\nKey :" ;
 		for( auto &e : tset )
 			cout<<"("<<src(e)<<","<<dest(e)<<") " ;
-		cout<<" -> \n"<<endl ;
+		cout<<" Value:- \n"<<endl ;
 
 		internalmap i = t->second ;
 		internalmapiterator it = i.begin() ;
@@ -681,12 +709,18 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 		cout<<makemytimebracketed()<<"...Complete("<<compute_elapsed( buildlevenshteintime )<<" seconds)"<<endl<<endl ;
 		string match = lev.next_valid_string(string(1,'\0')) ; 			// Can start with ^ for regex
 		cout<<"DEBUG:find_all_matches::Found next valid string -> "<<match<<endl ;
-		while( match.size() > 0 )
-		{
-			cout<<"INSIDE";
+		// while( match.size() > 0 )
+		// {
+		// 	cout<<"INSIDE"<<endl;
 			string next = m.nextinput( match ) ;
+			cout<<"find_all_matches::NEXT-> "<<next<<endl ;
 			if( next.empty() )
-				break ;
+			{
+				//for debug only!!!!!!!!!!!!!!!!!!
+				cout<<"DEBUG exit" <<endl ;
+				exit(0) ;
+				// break ;
+			}
 			if( match == next )
 			{
 				matches.push_back( match ) ;
@@ -694,8 +728,8 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 			}
 			match = lev.next_valid_string( next ) ;
 			cout<<"DEBUG:find_all_matches::Found next valid string -> "<<match<<endl ;
-		}
-		cout<<"PROBES: "<<m.getprobes()<<endl ;
+		// }
+		// cout<<"PROBES: "<<m.getprobes()<<endl ;
 		return matches ;
 	}
 // }
@@ -707,17 +741,45 @@ std::string defaultcleaningtool( const std::string &s )
 
 Matcher::Matcher()
 {
-
 	probes = 0 ;
-	filename = "d2.txt" ;
 	struct timespec sorttime ;
-	FileLoader *file = new FileLoader( "d2.txt", defaultcleaningtool ) ;
-	file->copycorpus( str ) ;
+	struct timespec loadtime ;
+
+	cout<<"\n"<<makemytimebracketed()<<"Loading the corpus..."<<endl ;
+	clock_gettime( CLOCK_REALTIME, &loadtime ) ;
+
+	if (FILE *fp = fopen("d2.txt", "r"))
+	{
+		std::vector<char> v;
+		char buf[1024];
+		while (size_t len = fread(buf, 1, sizeof(buf), fp))
+			v.insert(v.end(), buf, buf + len);
+		fclose(fp);
+
+		str.reserve( 300000 ) ;
+
+		string s ;
+		uint32_t vsize = v.size() ;
+		for( uint32_t i = 0 ; i < vsize ; ++i )
+		{
+			char ch = v[i] ;
+			if( ch != 10 )
+				s += ch ;
+			else
+			{
+				str.push_back(s) ;
+				s.clear() ;
+			}
+		}
+	}
+
 	if( str.size() == 0 )
 	{
 		cout<<"ERROR: File loading error"<<endl ;
 		exit(0) ;
 	}
+	cout<<makemytimebracketed()<<"...Complete("<<compute_elapsed( loadtime )<<" seconds)"<<endl<<endl ;
+
 	cout<<"\n"<<makemytimebracketed()<<"Sorting the corpus..."<<endl ;
 	clock_gettime( CLOCK_REALTIME, &sorttime ) ;
 	std::sort( str.begin(), str.end() ) ;
@@ -728,13 +790,29 @@ std::string Matcher::nextinput( const std::string &s )
 {
 	std::string empty ;
 	++probes ;
-	std::vector<std::string>::iterator it = std::lower_bound( str.begin(), str.end(), s ) ;	// Should be already sorted
-	uint32_t pos = it - str.begin() ;
+	cout<<"nextinput => "<<s<<endl ;
+	std::vector<std::string>::const_iterator it = std::lower_bound( str.begin(), str.end(), s ) ;	// Should be already sorted
+	uint32_t pos = it - str.begin() - 1;
+	cout<<"Iterator == end ?"<<std::boolalpha<<( it == str.end() )<<endl ;
+	cout<<"Iterator =>"<<*it<<endl ;
+	cout<<"Position =>"<<str[pos]<<endl ;
+
+	cout<<"POS-> "<<pos<<endl ;
+
+	cout<<"Corpus:"<<endl ;
+	for( auto e : str )
+		cout<<e<<endl ;
 
 	if( pos < str.size() )
+	{
+		cout<<"nextinput::Returning -> "<<str[ pos ]<<endl<<endl ;
 		return str[ pos ] ;
+	}
 	else
+	{
+		cout<<"nextinput::Returning -> empty"<<endl<<endl ;
 		return empty ;
+	}
 }
 
 int main()
