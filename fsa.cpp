@@ -709,9 +709,9 @@ Matcher::Matcher()
 {
 
 	probes = 0 ;
-	filename = "dict2.txt" ;
+	filename = "d2.txt" ;
 	struct timespec sorttime ;
-	FileLoader *file = new FileLoader( filename.c_str(), defaultcleaningtool ) ;
+	FileLoader *file = new FileLoader( "d2.txt", defaultcleaningtool ) ;
 	file->copycorpus( str ) ;
 	if( str.size() == 0 )
 	{

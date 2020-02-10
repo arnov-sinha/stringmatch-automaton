@@ -17,7 +17,7 @@ public:
 
 public:
 	FileLoader( const char* file, std::string ( *cleaner ) ( const std::string& dirtystring ) ) ;
-	void copycorpus( std::vector<char*> &corpus ) ;
+	void copycorpus( std::vector<std::string> &corpus ) ;
 	std::string ( *cleaningtool ) ( const std::string &dirtystring ) ;
 	static std::string makemytime( void );
 	static inline double compute_elapsed( const struct timespec &starttime)

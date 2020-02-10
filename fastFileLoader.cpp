@@ -8,9 +8,12 @@ FileLoader::FileLoader( const char* file, string ( *cleaner ) ( const string& di
   loadcorpus( filename ) ;
   }
 
-void FileLoader::copycorpus( vector<char*> &corpus )
+void FileLoader::copycorpus( vector<string> &corpus )
   {
-  corpus.swap( corpusdata ) ;
+    uint32_t corpussize = corpusdata.size() ;
+    corpus.reserve( corpussize ) ;
+    for( uint32_t i = 0 ; i < corpussize ; ++i )
+      corpus.push_back( corpusdata[ i ] ) ;
   }
 
 
