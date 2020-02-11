@@ -29,30 +29,6 @@ inline uint32_t dest( uint64_t node )
 	return(uint32_t)( node & 0xffff ) ;
 }
 
-// For debug only
-std::unordered_map<size_t, std::unordered_set<Node> > rhash ;
-
-// template<typename T>
-// size_t hashonset( const std::unordered_set<T> &uset )
-// {
-// 	std::vector<T> vec( uset.begin(), uset.end() ) ;
-// 	uint64_t size = sizeof(T) ;
-// 	std::string buf ;
-// 	uint64_t vecsize = vec.size() ;
-// 	buf.resize( vecsize * size ) ;
-// 	std::sort( vec.begin(), vec.end() ) ;
-// 	for( uint64_t ii = 0 ; ii < vecsize ; ++ii )
-// 	{
-// 		T elem = vec[ ii ] ;
-// 		for( uint64_t i = 0 ; i < size ; ++i )
-// 			buf[ size + i ] = ((char*) &elem)[ i ] ;
-// 	}
-// 	std::hash<std::string> str_hash ;
-// 	size_t key = str_hash(buf) ;
-// 	rhash[ key ] = uset	;
-// 	return key ;
-// }
-
 std::bitset<64> uintToBitSet( size_t value )
 {
   std::bitset<64> bits ;
@@ -76,7 +52,6 @@ size_t hashonset( const std::unordered_set<T> &uset )
 	for( auto &e : uset )
 		buf += s_hash( uintToBitSet( e ) ) ;
 	size_t key = s_hash(buf) ;
-	rhash[ key ] = uset	;
 	return key ;
 }
 
@@ -198,10 +173,9 @@ class Matcher
 private:
 	std::vector<std::string> str ;
 	uint32_t probes ;
-	std::string filename ;
 
 public:
-	Matcher() ;
+	Matcher( const std::string &filename ) ;
 	~Matcher(){} ;
 
 	inline uint32_t getprobes(){ return probes ; }
