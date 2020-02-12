@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdint.h>
 #include <sstream>
 #include <unordered_set>
@@ -6,6 +7,7 @@
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <bitset>
 #include "fastFileLoader.h"
 
 // Node for the Graph and supported functions
@@ -27,6 +29,33 @@ inline uint32_t dest( uint64_t node )
 	return(uint32_t)( node & 0xffff ) ;
 }
 
+std::bitset<64> uintToBitSet( size_t value )
+{
+  std::bitset<64> bits ;
+  uint64_t index = 0;
+  while( value != 0 )
+  {
+    if (value % 2 != 0)
+        bits.set( index );
+
+    ++index;
+    value = value >> 1;
+  }
+  return bits;
+}
+
+template<typename T>
+size_t hashonset( const std::unordered_set<T> &uset )
+{
+	size_t buf = 0 ;
+	std::hash<std::bitset<64> > s_hash ;
+	for( auto &e : uset )
+		buf += s_hash( uintToBitSet( e ) ) ;
+	size_t key = s_hash(buf) ;
+	return key ;
+}
+
+
 // Timer functions
 static inline double compute_elapsed( const struct timespec &starttime)
 	{
@@ -38,6 +67,7 @@ static inline double compute_elapsed( const struct timespec &starttime)
 		                    starttime.tv_nsec / ( double ) 1000000000 )) ;
 		return elapsed;
 	}
+
 
 static inline std::string makemytime( void )
   {
@@ -70,12 +100,12 @@ typedef std::unordered_map<std::string, std::unordered_set<Node> > internalmap ;
 typedef std::unordered_map<size_t, internalmap> smap ;
 
 // Iterators
-typedef std::unordered_map<size_t, internalmap>::iterator smapiterator ;
-typedef std::unordered_map<std::string, std::unordered_set<Node> >::iterator internalmapiterator ;
+typedef std::unordered_map<size_t, internalmap>::const_iterator smapiterator ;
+typedef std::unordered_map<std::string, std::unordered_set<Node> >::const_iterator internalmapiterator ;
 
 class DFA
 {
-private:
+public:
   	smap transitions ;
   	std::unordered_map<size_t , std::unordered_set<Node> > defaults ;
   	std::unordered_set<size_t> final_states ;
@@ -90,15 +120,11 @@ public:
   	void add_final_state( std::unordered_set<Node> state ) ;
   	bool is_final_state( std::unordered_set<Node> state ) ;
   	std::unordered_set<Node> next_state( std::unordered_set<Node> src, std::string input ) ;
-  	std::string find_next_edge( std::unordered_set<Node> s, std::string x ) ;
+  	std::string find_next_edge( const std::unordered_set<Node> &s, std::string x ) ;
   	std::string next_valid_string( std::string input ) ;
 
   	// Support functions
-  	template<typename T>
-	size_t hashonset( std::unordered_set<T> uset ) ;
-
-  	template<template <typename...> class Hashmap, typename T, typename U>
-  	std::vector<T> getkeys( const Hashmap<T,U> &hashmap ) ;
+  	std::vector<std::string> getkeys( const std::unordered_map<std::string, std::unordered_set<Node> > &hashmap ) ;
 } ;
 
 
@@ -109,8 +135,8 @@ typedef std::unordered_map<std::string, std::unordered_set<Node> > internalstate
 typedef std::unordered_map<Node, internalstate> statemap ;
 
 // Iterators
-typedef internalstate::iterator internalstateiterator ;
-typedef statemap::iterator statemapiterator ;
+typedef internalstate::const_iterator internalstateiterator ;
+typedef statemap::const_iterator statemapiterator ;
 
 class NFA
 {
@@ -118,8 +144,8 @@ private:
 	Node start_state ;
 
 public:
-	static const char EPSILON = '&' ;
-	static const char ANY = '#' ;
+	static const std::string EPSILON ;
+	static const std::string ANY ;
 	statemap transitions ;
 	std::unordered_set<Node> final_states ;
 
@@ -133,9 +159,9 @@ public:
 	std::unordered_set<Node> expand( std::unordered_set<Node> currstate ) ;
 	void add_final_state( Node state ) ;
 	bool is_final_state( std::unordered_set<Node> currstates ) ;
-	const std::unordered_set<Node> next_state( std::unordered_set<Node> currstates, std::string input ) ;
-	std::unordered_set<std::string> get_inputs( std::unordered_set<Node> states ) ;
-	bool isPresent( std::vector<std::unordered_set<Node> > seen, std::unordered_set<Node> set ) ;
+	const std::unordered_set<Node> next_state( const std::unordered_set<Node> &currstates, const std::string &input ) ;
+	std::unordered_set<std::string> get_inputs( const std::unordered_set<Node> &states ) ;
+	bool isPresent( const std::unordered_set<size_t> &seen, const std::unordered_set<Node> &set ) ;
 	DFA to_dfa() ;
 
 	// Support functions
@@ -145,12 +171,11 @@ public:
 class Matcher
 {
 private:
-	std::vector<char*> str ;
+	std::vector<std::string> str ;
 	uint32_t probes ;
-	std::string filename ;
 
 public:
-	Matcher() ;
+	Matcher( const std::string &filename ) ;
 	~Matcher(){} ;
 
 	inline uint32_t getprobes(){ return probes ; }

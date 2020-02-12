@@ -3,24 +3,7 @@
 
 using namespace std ;
 
-template<typename T>
-size_t DFA::hashonset( unordered_set<T> uset )
-{
-	vector<T> vec( uset.begin(), uset.end() ) ;
-	unsigned int size = sizeof(T) ;
-	string buf ;
-	unsigned int vecsize = vec.size() ;
-	buf.resize( vecsize * size ) ;
-	std::sort( vec.begin(), vec.end() ) ;
-	for( unsigned ii = 0 ; ii < vecsize ; ++ii )
-	{
-		T elem = ii ;
-		for( unsigned int i = 0 ; i < size ; ++i )
-			buf[ size + i ] = ((char*) &elem)[ i ] ;
-	}
-	std::hash<string> str_hash ;
-	return str_hash( buf ) ;
-}
+std::unordered_map<size_t , std::unordered_set<Node> > def ;
 
 DFA::DFA( unordered_set<Node> initstate )
 {
@@ -29,12 +12,14 @@ DFA::DFA( unordered_set<Node> initstate )
 	defaults.reserve( 200000 ) ;
 }
 
-template<template <typename...> class Hashmap, typename T, typename U>
-vector<T> DFA::getkeys( const Hashmap<T,U> &hashmap )
+vector<string> DFA::getkeys( const unordered_map<string, unordered_set<Node> > &hashmap )
 {
-	vector<T> keys ;
+	vector<string> keys ;
+	keys.reserve( hashmap.size() ) ;
 
-	for( const auto& p : hashmap ) keys.push_back( p.first) ;
+	unordered_map<string, unordered_set<Node> >::const_iterator it = hashmap.begin() ;
+	for( ; it != hashmap.end() ; ++it )
+		keys.push_back( it->first ) ;
 
 	return keys ;
 }
@@ -42,14 +27,15 @@ vector<T> DFA::getkeys( const Hashmap<T,U> &hashmap )
 void DFA::add_transition( unordered_set<Node> src, string input, unordered_set<Node> dest )
 {
 	size_t key = hashonset(src) ;
-  	internalmap &internal = transitions[ key ] ;
-  	internal[ input ] = dest ;
+  internalmap &internal = transitions[ key ] ;
+  internal[ input ] = dest ;
 }
 
 void DFA::set_default_transition( unordered_set<Node> src, unordered_set<Node> dest )
 {
 	size_t key = hashonset(src) ;
 	defaults[ key ] = dest ;
+	def[ key ] = src ;
 }
 
 void DFA::add_final_state( unordered_set<Node> state )
@@ -65,7 +51,6 @@ bool DFA::is_final_state( unordered_set<Node> state )
 
 unordered_set<Node> DFA::next_state( unordered_set<Node> src, string input )
 {
-	cout<<"    ->next_state->Input-> "<<input<<endl ;
   	unordered_set<Node> empty ;
   	bool flag = false ;
 
@@ -78,13 +63,7 @@ unordered_set<Node> DFA::next_state( unordered_set<Node> src, string input )
     	internalmap state_transition = it->second ;
     	internalmapiterator sit = state_transition.find( input ) ;
     	if( sit != state_transition.end() )
-    	{
-    		cout<<"    ->next_state->Return1-> " ;
-    		for( auto &e : sit->second )
-				cout<<"("<<(e>>32)<<","<<(e&0xffff)<<") \t" ;
-			cout<<endl;
       		return sit->second ;
-    	}
     	else
       		flag = true ;
   	}
@@ -95,19 +74,12 @@ unordered_set<Node> DFA::next_state( unordered_set<Node> src, string input )
   	{
     	unordered_map<size_t , unordered_set<Node> >::iterator dit = defaults.find( key ) ;
     	if( dit != defaults.end() )
-    	{
-    		cout<<"    ->next_state->Return2-> " ;
-    		for( auto &e : dit->second )
-				cout<<"("<<(e>>32)<<","<<(e&0xffff)<<") \t" ;
-			cout<<endl;
-      		return dit->second ;
-    	}
+      	return dit->second ;
     }
-    cout<<"    ->next_state->Return-> None"<<endl ;
 		return empty ;
 }
 
-string DFA::find_next_edge( unordered_set<Node> s, string x )		// Gives the position of the lexicographically lower edge
+string DFA::find_next_edge( const unordered_set<Node> &s, string x )		// Gives the position of the lexicographically lower edge
 {
 	string empty("") ;
 	bool checkdefaults = false ;
@@ -156,89 +128,37 @@ string DFA::find_next_edge( unordered_set<Node> s, string x )		// Gives the posi
 
 string DFA::next_valid_string( string input )
 {
-	cout<<"Input -> "<<input<<endl ;
   	string none("") ;
   	bool flag = false ;
   	int64_t inputsize = input.size() ;
-  	int64_t i = -1 ;
+  	uint64_t i = 0 ;
   	unordered_set<Node> state = start_state ;
-  	cout<<"start_state-> " ;
-  	for( auto &e : state )
-  		cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-  	cout<<endl ;
+  	
   	// The below vectors can be replaced by vector<std::variant<type1,type2,type3>
   	// for c++17 onwards.
   	vector<string> stack1 ;
   	vector<unordered_set<Node> > stack2 ;
-  	vector<string> stack3 ;				// Maybe make it a char?
+  	vector<string> stack3 ;
 
-	for( int64_t x = 0 ; x < inputsize ; ++x, ++i )
+	for( uint64_t x = 0 ; x < inputsize ; ++x, ++i )
   	{
-  		cout<<"i-> "<<i<<endl ;
-    	cout<<"x->"<<input[ x ]<<endl ;
-    	if( i > -1 )
-      		stack1.push_back( input.substr( 0, i ) ) ;
-    	else
-      		stack1.push_back( none ) ;
-
+    	stack1.push_back( input.substr(0,i) ) ;
     	stack2.push_back( state ) ;
     	stack3.push_back( string(1,input[ x ]) ) ;
 
-    	cout<<"Stack1-> " ;
-    	for( auto e : stack1 )
-    		cout<<e<<"\t" ;
-    	cout<<endl;
-
-    	cout<<"Stack2-> " ;
-    	for( auto k : stack2 )
-    		for( auto &e : k )
-    			cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-    	cout<<endl;
-
-    	cout<<"Stack3-> " ;
-    	for( auto e : stack3 )
-    		cout<<e<<"\t" ;
-    	cout<<endl;
-
     	state = next_state( state, string(1,input[ x ]) ) ;
 
-    	cout<<"next_state-> " ;
-		for( auto &e : state )
-			cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-		cout<<endl;    	
-
     	if( state.size() == 0 )			// No where to go
-    	{
-      		flag = true ;
       		break ;
-    	}
   	}
 
   	// If there is no other state create a final state and add it to the stack
-  	if( flag )
-  	{
-	    stack1.push_back( input.substr( 0, i + 1 ) ) ;
-    	stack2.push_back( state ) ;
-    	stack3.push_back( none ) ;
-
-    	for( auto e : stack1 )
-    		cout<<e<<"\t" ;
-    	cout<<endl;
-
-    	cout<<"Stack2-> " ;
-    	for( auto k : stack2 )
-    		for( auto &e : k )
-    			cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-    	cout<<endl;
-
-    	cout<<"Stack3-> None"<<endl ;
-  	}
+    stack1.push_back( input.substr( 0, i + 1 ) ) ;
+	stack2.push_back( state ) ;
+	stack3.push_back( none ) ;
 
   	if( is_final_state( state ) )		// Input word is already valid as a final state is available
-  	{
-  		cout<<"Return-> "<<input<<endl ;
   		return input ;
-  	}
 
   	while( !stack1.empty() )			// Iterate through till you find a lexicographically smallest accepting state
   	{
@@ -248,60 +168,32 @@ string DFA::next_valid_string( string input )
   		unordered_set<Node> lstate = stack2.back() ;
   		stack2.pop_back() ;
 
-		string x = stack3.back() ;
+			string x = stack3.back() ;
   		stack3.pop_back() ;
 
-  		cout<<"EMPTY::Stack1 -> "<<path<<endl ;
-  		cout<<"EMPTY::Stack2 -> " ;
-  		for( auto k : stack2 )
-    		for( auto &e : k )
-    			cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-    	cout<<endl ;
-  		cout<<"EMPTY::Stack3 -> "<<x<<endl ;
-
   		x = find_next_edge( lstate, x ) ;
-
-  		cout<<"EMPTY::findnextedge -> "<<x<<endl ;
 
   		if( !x.empty() )
   		{
   			path += x ;
-  			cout<<"Path-> "<<path ;
   			lstate = next_state( lstate, x ) ;
-  			cout<<"lstate -> " ;
-  			for( auto &e : lstate )
-    			cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-    		cout<<endl ;
 
   			if( is_final_state( lstate ) )			// TODO: does this correctly validate a empty node? src,dest := UINT64_MAX
-  			{
-  				cout<<"Return-> "<<path<<endl ;
   				return path ;
-  			}
 
   			stack1.push_back( path ) ;
   			stack2.push_back( lstate ) ;
   			stack3.push_back( none ) ;
 
-  			cout<<"Final Stack1-> " ;
-  			for( auto e : stack1 )
-  				cout<<e<<"\t" ;
-  			cout<<endl;
-
-  			cout<<"Final Stack2-> " ;
-  			for( auto k : stack2 )
-  				for( auto &e : k )
-  					cout<<"("<<src(e)<<","<<dest(e)<<") \t" ;
-  			cout<<endl;
-
-  			cout<<"Final Stack3-> None"<<endl ;
   		}
   	}
-  	cout<<"Returning None"<<endl ;
   	return none ;
 }
 
 //--------------------------------------------------------------NFA----------------------------------------------------------------------------
+
+const std::string NFA::EPSILON = "&" ;
+const std::string NFA::ANY = "#" ;
 
 NFA::NFA()
 {
@@ -322,9 +214,6 @@ unordered_set<Node> NFA::set_difference( const unordered_set<Node> &a, const uno
 	vector<Node> vec ;
 	// set difference -> A - B
 	std::copy_if( a.begin(), a.end() , std::back_inserter( vec ), [&b] ( Node i ) { return b.find( i ) == b.end() ; } ) ;
-	// cout<<"\tset_difference:"<<endl ;
-	// for( auto e : vec )
-	// 	cout<<"\t\t("<<src(e)<<","<<dest(e)<<")"<<endl ;
 	unordered_set<Node> result( vec.begin(), vec.end() ) ;
 	return result ;
 }
@@ -337,74 +226,25 @@ const unordered_set<Node> NFA::get_start_state( void )
 
 unordered_set<Node> NFA::expand( unordered_set<Node> currstate )
 {
-	// cout<<"------------------------------------------------EXPAND----------------------------------------------------"<<endl ;
     unordered_set<Node> frontier(currstate) ;
 	while( !frontier.empty() )
 	{
 		unordered_set<Node> newstates ;
 		unordered_set<Node>::iterator it = frontier.begin() ;
 		Node state = *it ;
-		// cout<<"\n\tState popped -> ("<<src(state)<<","<<dest(state)<<")"<<endl ;
 		frontier.erase( it ) ;
 		statemapiterator tit = transitions.find( state ) ;
 		if( tit != transitions.end() )
 		{
-			internalstateiterator iit = tit->second.find( string(1, EPSILON) ) ;
+			internalstateiterator iit = tit->second.find( EPSILON ) ;
 			if( iit != tit->second.end() )
 				newstates = set_difference( iit->second, currstate ) ;
 		}
 		frontier.insert( newstates.begin(), newstates.end() ) ;
 		currstate.insert( newstates.begin(), newstates.end() ) ;
 	}
-	// cout<<"---------------------------------------------------------------------------------------------------------"<<endl ;
 	return currstate ;
 }
-
-// unordered_set<Node> NFA::expand( unordered_set<Node> currstate )
-// {
-// 	cout<<"DEBUG:NFA::expand::Inside"<<endl ;
-// 	unordered_set<Node> frontier( currstate ) ;
-// 	unordered_set<Node>::iterator it = frontier.begin() ;
-// 	unordered_set<Node> newstates ;
-// 	Node state ;
-
-// 	cout<<"DEBUG:NFA::expand::Inside While"<<endl ;
-// 	do 				// Change back to while
-// 	{
-// 		cout<<"DEBUG:NFA::expand::Frontier size ->"<<frontier.size()<<endl ;
-// 		if( it != frontier.end() )
-// 		{
-// 			cout<<"DEBUG:NFA::expand::inside if ->"<<*it<<endl ;
-// 			state = *it ;
-// 			it = frontier.erase( it ) ;
-// 			cout<<"DEBUG:NFA::expand::UPDATED Frontier size ->"<<frontier.size()<<endl ;
-// 			statemapiterator internal = transitions.find( state ) ;
-// 			if( internal != transitions.end() )
-// 			{
-// 				internalstateiterator localset = internal->second.find( string(1,EPSILON) ) ;
-// 				cout<<"DEBUG:NFA::expand::localset found something -> "<<std::boolalpha<<(localset != internal->second.end())<<endl ;
-// 				if( localset != internal->second.end() )
-// 				{
-// 					for( auto &e : internal->second )
-// 						cout<<"\t"<<e.first<<endl ;
-// 					newstates = set_difference( localset->second, currstate ) ;
-// 				}
-// 			}
-
-// 			cout<<"DEBUG:NFA::expand::newstate.size() -> "<<newstates.size()<<endl ;
-// 			frontier.insert( newstates.begin(), newstates.end() ) ;
-// 			currstate.insert( newstates.begin(), newstates.end() ) ;
-// 		}
-// 		else
-// 		{
-// 			it = frontier.begin() ;
-// 			cout<<"DEBUG:NFA::expand::inside else"<<endl ;
-// 		}
-// 		cout<<"DEBUG:NFA::expand::!frontier.empty()"<<!frontier.empty()<<endl ;
-// 	}while( !frontier.empty() ) ;
-// 	cout<<"DEBUG:NFA::expand::Exiting"<<endl ;
-// 	return currstate ;
-// }
 
 void NFA::add_transition( Node src, string input, Node dest )
 {
@@ -431,12 +271,12 @@ bool NFA::is_final_state( unordered_set<Node> currstates )
 	return (intersection.size() != 0 ) ;
 }
 
-const unordered_set<Node> NFA::next_state( unordered_set<Node> currstates, string input )
+const unordered_set<Node> NFA::next_state( const unordered_set<Node> &currstates, const string &input )
 {
 	unordered_set<Node> dest_states ;
-	unordered_set<Node>::iterator it ;
+	unordered_set<Node>::const_iterator it = currstates.begin() ;
 
-	for( it = currstates.begin() ; it != currstates.end() ; ++it )
+	for( ; it != currstates.end() ; ++it )
 	{
 		internalstate internal ;
 		statemapiterator sit = transitions.find( *it ) ;
@@ -447,23 +287,22 @@ const unordered_set<Node> NFA::next_state( unordered_set<Node> currstates, strin
 			if( iit != internal.end() )
 				dest_states.insert( iit->second.begin(), iit->second.end() ) ;
 
-			iit = internal.find( string(1,ANY) ) ;
-			if( iit != internal.end() )
-				dest_states.insert( iit->second.begin(), iit->second.end() ) ;
+			internalstateiterator iiit = internal.find( ANY ) ;
+			if( iiit != internal.end() )
+				dest_states.insert( iiit->second.begin(), iiit->second.end() ) ;
 		}
 	}
 	return expand( dest_states ) ;
 }
 
-unordered_set<string> NFA::get_inputs( unordered_set<Node> states )
+unordered_set<string> NFA::get_inputs( const unordered_set<Node> &states )
 {
 	unordered_set<string> inputs ;
-	unordered_set<Node>::iterator state ;
-	statemapiterator it ;
+	unordered_set<Node>::const_iterator state ;
 
 	for( state = states.begin() ; state != states.end() ; ++state )
 	{
-		it = transitions.find( *state ) ;
+		statemapiterator it = transitions.find( *state ) ;
 		if( it != transitions.end() )
 			for( auto& e : it->second )
 				inputs.insert( e.first ) ;
@@ -471,49 +310,51 @@ unordered_set<string> NFA::get_inputs( unordered_set<Node> states )
 	return inputs ;
 }
 
-bool NFA::isPresent( vector<unordered_set<Node> > seen, unordered_set<Node> set )
+bool NFA::isPresent( const unordered_set<size_t> &seen, const unordered_set<Node> &set )
 {
-	uint64_t vecsize = seen.size() ;
-	for( uint64_t i = 0 ; i < vecsize ; ++i )
-	{
-		if( seen[ i ] == set )
-			return true ;
-	}
-	return false ;
+	size_t key = hashonset(set) ;
+	unordered_set<size_t>::const_iterator it = seen.find( key ) ;
+	return( it != seen.end() ) ;
 }
 
 DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of class maybe needed
 {
+	unordered_map<size_t, unordered_set<Node> > shash ;
 	unordered_set<Node> n ( get_start_state() ) ;
 	vector<unordered_set<Node> > frontier ;
-	vector<unordered_set<Node> > seen ;
+	unordered_set<size_t> seen ;
 
 	DFA dfa( n ) ;
 	frontier.push_back( n ) ;
+
 	while( !frontier.empty() )
 	{
 		unordered_set<Node> current = frontier.back() ;
 		frontier.pop_back() ;
-
+		
 		unordered_set<string> inputs( get_inputs( current ) ) ;
-		unordered_set<string>::iterator it ;
+		
+		unordered_set<string>::const_iterator it ;
 		for( it = inputs.begin() ; it != inputs.end() ; ++it )
 		{
-			string input = *it ;
-			if( input.compare( string( 1, EPSILON ) ) == 0 )
+			const string &input = *it ;
+
+			if( input == EPSILON )
 				continue ;
 
 			unordered_set<Node> new_state( next_state( current, input ) ) ;
 			if( !isPresent( seen, new_state ) )
 			{
 				frontier.push_back( new_state ) ;
-				seen.push_back( new_state ) ;
+				size_t key = hashonset(new_state) ;
+				seen.insert( key ) ;
+				shash[ key ] = new_state ;
 
 				if( is_final_state( new_state ) )
 					dfa.add_final_state( new_state ) ;
 			}
 
-			if( input.compare( string( 1, ANY ) ) )
+			if( input == ANY )
 				dfa.set_default_transition( current, new_state ) ;
 			else
 				dfa.add_transition( current, input, new_state ) ;
@@ -524,95 +365,98 @@ DFA NFA::to_dfa()			// Write a sample code to check the return type, typedef of 
 
 //--------------------------------------------------------------AUTOMATA---------------------------------------------------------------------
 
-// namespace fsa
-// {
 
-	NFA levenshtein_automata( string term, uint32_t k  ) 		// Term to evaluate upto k errors
+NFA levenshtein_automata( string term, uint32_t k  ) 		// Term to evaluate upto k errors
+{
+	NFA nfa ; 		// Default constructor with initial state ( 0, 0 )
+	uint32_t termsize = term.size() ;
+
+	for( uint32_t i = 0 ; i < termsize ; ++i )
 	{
-		NFA nfa ; 		// Default constructor with initial state ( 0, 0 )
-		uint32_t termsize = term.size() ;
-
-		for( uint32_t i = 0 ; i < termsize ; ++i )
-		{
-			for( uint32_t e = 0 ; e <= k ; ++e )
-			{
-				// Correct Character
-				Node src = node( i,e ) ;
-				Node dest = node( i + 1, e ) ;
-
-				nfa.add_transition( src, string(1,term[ i ]), dest ) ;
-
-				if( e < k )
-				{
-					// Deletion
-					Node del = node( i, (e + 1) ) ;
-					nfa.add_transition( src, string(1,NFA::ANY), del ) ;
-
-					// Insertion
-					Node ins = node( (i + 1), (e + 1) ) ;
-					nfa.add_transition( src, string(1,NFA::EPSILON), ins ) ;
-
-					// Substitution
-					nfa.add_transition( src, string(1,NFA::ANY), ins ) ;
-				}
-			}
-		}
-
 		for( uint32_t e = 0 ; e <= k ; ++e )
 		{
+			// Correct Character
+			Node src = node( i,e ) ;
+			Node dest = node( i + 1, e ) ;
+
+			nfa.add_transition( src, string(1,term[ i ]), dest ) ;
+
 			if( e < k )
 			{
-				Node src = node( termsize, e ) ;
-				Node dest = node( termsize , (e + 1) ) ;
-				nfa.add_transition( src, string(1,NFA::ANY), dest ) ;
+				// Deletion
+				Node del = node( i, (e + 1) ) ;
+				nfa.add_transition( src, NFA::ANY, del ) ;
+
+				// Insertion
+				Node ins = node( (i + 1), (e + 1) ) ;
+				nfa.add_transition( src, NFA::EPSILON, ins ) ;
+
+				// Substitution
+				nfa.add_transition( src, NFA::ANY, ins ) ;
 			}
-			Node final = node( termsize, e ) ;
-			nfa.add_final_state( final ) ;
 		}
-		return nfa ;
 	}
 
-	// function pointer: A single argument function that returns the first word in the database that is greater than or equal to the input argument
-	// Returns: Every matched word from edit distance 3 from the database
-	vector<string> find_all_matches( string word, uint32_t k )
+	for( uint32_t e = 0 ; e <= k ; ++e )
 	{
-		struct timespec buildlevenshteintime ;
-		vector<string> matches ;
-		Matcher m ;
-		cout<<makemytimebracketed()<<"Building Levenshtein Automaton..."<<endl ;	
-		DFA lev = levenshtein_automata( word, k ).to_dfa() ;
-		clock_gettime( CLOCK_REALTIME, &buildlevenshteintime ) ;
-		cout<<makemytimebracketed()<<"...Complete("<<compute_elapsed( buildlevenshteintime )<<" seconds)"<<endl<<endl ;
-		string match = lev.next_valid_string(string(1,'\0')) ; 			// Can start with ^ for regex
-		cout<<"DEBUG:find_all_matches::Found next valid string -> "<<match<<endl ;
-		while( match.size() > 0 )
+		if( e < k )
 		{
-			string next = m.nextinput( match ) ;
-			if( next.empty() )
-				break ;
-			if( match == next )
-			{
-				matches.push_back( match ) ;
-				next += '\0' ;
-			}
-			match = lev.next_valid_string( next ) ;
-			cout<<"DEBUG:find_all_matches::Found next valid string -> "<<match<<endl ;
+			Node src = node( termsize, e ) ;
+			Node dest = node( termsize , (e + 1) ) ;
+			nfa.add_transition( src, NFA::ANY, dest ) ;
 		}
-		cout<<"PROBES: "<<m.getprobes()<<endl ;
-		return matches ;
+		Node final = node( termsize, e ) ;
+		nfa.add_final_state( final ) ;
 	}
-// }
+	return nfa ;
+}
+
+vector<string> find_all_matches( const string &filename, const string &word, const uint32_t &k )
+{
+	struct timespec buildlevenshteintime ;
+	struct timespec findmatchestime ;
+	struct timespec probetime ;
+	double totalprobetime = 0 ;
+	vector<string> matches ;
+	Matcher m( filename ) ;
+
+	cout<<makemytimebracketed()<<"Building Levenshtein Automaton..."<<endl ;	
+	clock_gettime( CLOCK_REALTIME, &buildlevenshteintime ) ;
+	DFA lev = levenshtein_automata( word, k ).to_dfa() ;
+	cout<<makemytimebracketed()<<"...Complete("<<compute_elapsed( buildlevenshteintime )<<" seconds)"<<endl<<endl ;
+	
+	clock_gettime( CLOCK_REALTIME, &findmatchestime ) ;
+	clock_gettime( CLOCK_REALTIME, &probetime ) ;
+	string match = lev.next_valid_string(string(1,'\0')) ; 			// Can start with ^ for regex, hmm not sure
+	while( match.size() > 0 )
+	{
+		string next = m.nextinput( match ) ;
+		if( next.empty() )
+			break ;
+		if( match == next )
+		{
+			matches.push_back( match ) ;
+			next += '\0' ;
+		}
+		totalprobetime += compute_elapsed( probetime ) ;
+		clock_gettime( CLOCK_REALTIME, &probetime ) ;
+		match = lev.next_valid_string( next ) ;
+	}
+	cout<<"Time to find potential matches: "<<compute_elapsed( findmatchestime )<<" seconds)"<<endl ;
+	cout<<"No of probes: "<<m.getprobes()<<endl ;
+	cout<<"Total probe time: "<<totalprobetime <<endl ;
+	cout<<"Average probe time: "<<( totalprobetime / m.getprobes() )<<endl ;
+	return matches ;
+}
 
 std::string defaultcleaningtool( const std::string &s )
 {
     return s ;
 }
 
-Matcher::Matcher()
+Matcher::Matcher( const string &filename )
 {
-
 	probes = 0 ;
-	filename = "dict5.txt" ;
 	struct timespec sorttime ;
 	FileLoader *file = new FileLoader( filename.c_str(), defaultcleaningtool ) ;
 	file->copycorpus( str ) ;
@@ -625,31 +469,93 @@ Matcher::Matcher()
 	clock_gettime( CLOCK_REALTIME, &sorttime ) ;
 	std::sort( str.begin(), str.end() ) ;
 	cout<<makemytimebracketed()<<"...Complete("<<compute_elapsed( sorttime )<<" seconds)"<<endl<<endl ;
+
 }
+
+// Matcher::Matcher()
+// {
+// 	probes = 0 ;
+// 	struct timespec sorttime ;
+// 	struct timespec loadtime ;
+
+// 	cout<<"\n"<<makemytimebracketed()<<"Loading the corpus..."<<endl ;
+// 	clock_gettime( CLOCK_REALTIME, &loadtime ) ;
+
+// 	if (FILE *fp = fopen("d2.txt", "r"))
+// 	{
+// 		std::vector<char> v;
+// 		char buf[1024];
+// 		while (size_t len = fread(buf, 1, sizeof(buf), fp))
+// 			v.insert(v.end(), buf, buf + len);
+// 		fclose(fp);
+
+// 		str.reserve( 300000 ) ;
+
+// 		string s ;
+// 		uint32_t vsize = v.size() ;
+// 		for( uint32_t i = 0 ; i < vsize ; ++i )
+// 		{
+// 			char ch = v[i] ;
+// 			if( ch != 10 )
+// 				s += ch ;
+// 			else
+// 			{
+// 				str.push_back(s) ;
+// 				s.clear() ;
+// 			}
+// 		}
+// 	}
+
+// 	if( str.size() == 0 )
+// 	{
+// 		cout<<"ERROR: File loading error"<<endl ;
+// 		exit(0) ;
+// 	}
+// 	cout<<makemytimebracketed()<<"...Complete("<<compute_elapsed( loadtime )<<" seconds)"<<endl<<endl ;
+
+// 	cout<<"\n"<<makemytimebracketed()<<"Sorting the corpus..."<<endl ;
+// 	clock_gettime( CLOCK_REALTIME, &sorttime ) ;
+// 	std::sort( str.begin(), str.end() ) ;
+// 	cout<<makemytimebracketed()<<"...Complete("<<compute_elapsed( sorttime )<<" seconds)"<<endl<<endl ;
+// }
 
 std::string Matcher::nextinput( const std::string &s )
 {
 	std::string empty ;
 	++probes ;
-	std::vector<char*>::iterator it = std::lower_bound( str.begin(), str.end(), s ) ;	// Should be already sorted
+	std::vector<std::string>::const_iterator it = std::lower_bound( str.begin(), str.end(), s ) ;	// Should be already sorted
 	uint32_t pos = it - str.begin() ;
-
 	if( pos < str.size() )
 		return str[ pos ] ;
 	else
 		return empty ;
 }
 
-int main()
+int main( int argc, char** argv )
 {
 	vector<string> results ;
-	results = find_all_matches( "food", 1 ) ;
+	string filename ;
+	string pattern ;
+	uint32_t k ;	// Edit distance, upto k errors
+	bool showresult = false ; 
 
-	cout<<"RESULTS: "<<results.size()<<endl ;
-	for( auto e : results )
-		cout<<e<<endl ;
+	if( argc > 2 )
+	{
+		filename = argv[ 1 ] ;
+		pattern = argv[ 2 ] ;
+		k = stoi(argv[ 3 ]) ;
+		showresult = stoi(argv[ 4 ]) ;
+	}
 
-	// cout<<std::boolalpha<<assert( results.size() == 21 )<<endl ;
+	results = find_all_matches( filename, pattern, k ) ;
 
+	cout<<"No of Results:"<<results.size()<<endl ;
+
+	if( showresult )
+	{
+		cout<<"RESULTS: "<<endl ;
+		for( auto e : results )
+			cout<<e<<endl ;
+	}
 	return 0 ;
 }

@@ -1,4 +1,5 @@
 import bisect
+import pprint
 
 class NFA(object):
   EPSILON = object()
@@ -59,20 +60,38 @@ class NFA(object):
     frontier = [self.start_state]
     seen = set()
     while frontier:
+      # print "\n-----------------------------Frontier-----------------------------"
+      # print frontier
       current = frontier.pop()
+      # print "POPPED=> ",current
+      # print "------------------------------------------------------------------"
       inputs = self.get_inputs(current)
+      # print "\n-----------------------------",inputs,"-----------------------------------"
       for input in inputs:
+        # print "\n\nEVALUATING-> \"",input,"\""
         if input == NFA.EPSILON: continue
         new_state = self.next_state(current, input)
+        # print "\t\tnext_state-> ",new_state
+        # print "\t\tseen-> "
+        # pprint.pprint(seen)
         if new_state not in seen:
+          # print "\t\tNot in seen -> true"
+          # print "Appending FRONTIER with new_state above "
           frontier.append(new_state)
           seen.add(new_state)
           if self.is_final(new_state):
             dfa.add_final_state(new_state)
         if input == NFA.ANY:
+          # print "\t\tAdding Default transitions from ",current," -> ",new_state
           dfa.set_default_transition(current, new_state)
         else:
+          # print "\t\tAdding transitions from ",current," with \"",input,"\" -> ",new_state
           dfa.add_transition(current, input, new_state)
+    # print "-----------------------------DFA-----------------------------------"
+    # for k,v in dfa.transitions.items():
+    #   print k, " -> "
+    #   for key,value in v.items():
+    #     print "\t\t\t",key," -> ",value
     return dfa
 
 
@@ -96,74 +115,97 @@ class DFA(object):
     return state in self.final_states
   
   def next_state(self, src, input):
-    print("    ->next_state->Input-> ",input)
+    # print("    ->next_state->Input-> ",input)
     state_transitions = self.transitions.get(src, {})
-    print( "    ->next_state->Return->",state_transitions.get(input, self.defaults.get(src, None)) )
+    # print( "    ->next_state->Return->",state_transitions.get(input, self.defaults.get(src, None)) )
     return state_transitions.get(input, self.defaults.get(src, None))
 
   def next_valid_string(self, input):
-    print( "Input -> ", input )
+    print "next_valid_string::Input -> ", input 
     state = self.start_state
-    print("start_state-> ", state)
+    print "next_valid_string::start_state-> ", state
     stack = []
     # Evaluate the DFA as far as possible
     for i, x in enumerate(input):
-      print("i-> ",i)
-      print("x-> ",x)
+      print "next_valid_string::i-> ",i
+      print "next_valid_string::x-> ",x
       stack.append((input[:i], state, x))
-      print("Stack1-> ", input[:1])
-      print("Stack2-> ",state)
-      print("Stack3-> ",x)
+      print "next_valid_string::Appended to Stack1-> ", input[:1]
+      print "next_valid_string::Appended to Stack2-> ",state
+      print "next_valid_string::Appended to Stack3-> ",x
       state = self.next_state(state, x)
-      print("next_state-> ",state)
+      print "next_valid_string::next_state-> ",state, "\t Size =>",len(state)
       if not state: break
     else:
       stack.append((input[:i+1], state, None))
-      print("Stack1-> ", input[:i+1])
-      print("Stack2-> ",state)
-      print("Stack3-> ",None)
+      print "next_valid_string::Final appended to Stack1-> ", input[:i+1]
+      print "next_valid_string::Final appended to Stack2-> ",state
+      print "next_valid_string::Final appended to Stack3-> ",None
+
+    print "\nnext_valid_string::Stack after Step 1: ",stack
 
     if self.is_final(state):
       # Input word is already valid
-      print( "Return-> ",input )
+      print  "next_valid_string::is_final::Return-> ",input 
       return input
     
+    print "\n"
+
     # Perform a 'wall following' search for the lexicographically smallest
     # accepting state.
     while stack:
+      print "\n--------------------While( Stack size: ",len(stack)," ----------------------"
+      print "\t\tBefore::Stack-> ",stack
       path, state, x = stack.pop()
-      print("EMPTY::Stack1-> ",path)
-      print("EMPTY::Stack2-> ",state)
-      print("EMPTY::Stack3-> ",x)
+      print "\t\tPopped::Stack1-> ",path
+      print "\t\tPopped::Stack2-> ",state
+      print "\t\tPopped::Stack3-> ",x
 
       x = self.find_next_edge(state, x)
-      print("EMPTY::findnextedge-> ",x)
+      print "\t\tnext_valid_string::findnextedge-> ",x
+      print "\t\tx ==",x
       if x:
         path += x
-        print("Path-> ",path)
+        print "\t\tPath-> ",path
         state = self.next_state(state, x)
-        print("lstate -> ",state)
+        print "\t\tlstate -> ",state
         if self.is_final(state):
-          print("Return-> ",path)
+          print "\t\tReturn-> ",path
           return path
         stack.append((path, state, None))
-        print("Final Stack1-> ",path)
-        print("Final Stack2-> ",state)
-        print("Final Stack3-> None")
-    print("Returning None")
+        print "\t\tFinal Stack1-> ",path
+        print "\t\tFinal Stack2-> ",state
+        print "\t\tFinal Stack3-> None"
+    print "\t\tReturning None"
     return None
 
   def find_next_edge(self, s, x):
+
+    if x:
+      print "find_next_edge::Before x, size(",len(x),") => ",x
+    else:
+      print "find_next_edge::Before x, (NONE) => ",x
     if x is None:
+      print "find_next_edge:: x => '0'"
       x = u'\0'
     else:
+      print "find_next_edge:: x => +1 "
       x = unichr(ord(x) + 1)
+    print "find_next_edge::After x => ",x
+
+    print "\n\t-----------------DEFAULTS-----------------"
+    print "\tsize->",len(self.defaults)
+    print "\t",self.defaults
+    print "\n\t-----------------DEFAULTS-----------------\n"
+
     state_transitions = self.transitions.get(s, {})
     if x in state_transitions or s in self.defaults:
+      print "find_next_edge::Return x -> ",x
       return x
     labels = sorted(state_transitions.keys())
     pos = bisect.bisect_left(labels, x)
     if pos < len(labels):
+      print "find_next_edge::Return label[pos] -> ",labels[ pos ]
       return labels[pos]
     return None
     
@@ -201,13 +243,14 @@ def find_all_matches(word, k, lookup_func):
   """
   lev = levenshtein_automata(word, k).to_dfa()
   match = lev.next_valid_string(u'\0')
-  print("DEBUG:find_all_matches::Found next valid string -> ",match)
-  while match:
-    next = lookup_func(match)
-    if not next:
-      return
-    if match == next:
-      yield match
-      next = next + u'\0'
-    match = lev.next_valid_string(next)
-    print("DEBUG:find_all_matches::Found next valid string -> ",match)
+  # print("DEBUG:find_all_matches::Found next valid string -> ",match)
+  # while match:
+  next = lookup_func(match)
+  print "find_all_matches::NEXT-> ",next
+  if not next:
+    return
+  if match == next:
+    yield match
+    next = next + u'\0'
+  match = lev.next_valid_string(next)
+  print "\n\nDEBUG:find_all_matches::Found next valid string -> ",match
