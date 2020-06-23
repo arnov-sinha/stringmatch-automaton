@@ -129,7 +129,6 @@ string DFA::find_next_edge( const unordered_set<Node> &s, string x )		// Gives t
 string DFA::next_valid_string( string input )
 {
   	string none("") ;
-  	bool flag = false ;
   	int64_t inputsize = input.size() ;
   	uint64_t i = 0 ;
   	unordered_set<Node> state = start_state ;
@@ -140,7 +139,7 @@ string DFA::next_valid_string( string input )
   	vector<unordered_set<Node> > stack2 ;
   	vector<string> stack3 ;
 
-	for( uint64_t x = 0 ; x < inputsize ; ++x, ++i )
+	for( int64_t x = 0 ; x < inputsize ; ++x, ++i )
   	{
     	stack1.push_back( input.substr(0,i) ) ;
     	stack2.push_back( state ) ;
